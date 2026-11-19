@@ -1,0 +1,4 @@
+#ifndef SWITCH2_DLOPEN_COMPAT_H
+#define SWITCH2_DLOPEN_COMPAT_H
+
+#endif

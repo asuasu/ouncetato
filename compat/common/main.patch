@@ -1,0 +1,15 @@
+diff --git a/main.gd b/main.gd
+--- a/main.gd
++++ b/main.gd
+@@ -128,8 +128,9 @@
+ 
+ 
+ func _ready() -> void :
+-	if DebugService.display_fps:
+-		_fps_label.show()
++	_fps_label.show()
++	_fps_label.rect_position = Vector2(8, 8)
++	_fps_label.add_font_override("font", preload("res://resources/fonts/actual/base/font_22.tres"))
+ 
+ 	if consumable_scene != null:
+ 		_consumable_pool_id = Keys.generate_hash(consumable_scene.resource_path)

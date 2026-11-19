@@ -1,0 +1,25 @@
+import version
+
+Import("env")
+
+files = [
+    "godot_switch.cpp",
+    "os_switch.cpp",
+    "joypad_switch.cpp",
+    "context_gl_switch_egl.cpp",
+    "#drivers/audren/audio_driver_audren.cpp",
+]
+
+program = env.add_program("#bin/godot-switch2", files)
+version_string = "{}.{}.{}-{}".format(version.major, version.minor, version.patch, version.status)
+nacp = env.Command(
+    "#bin/godot-switch2.nacp",
+    None,
+    "nacptool --create 'Godot Switch 2' 'ounce-devkit' " + version_string + " $TARGET",
+)
+nro = env.Command(
+    "#bin/godot-switch2_" + env["target"] + ".nro",
+    program,
+    "elf2nro $SOURCE $TARGET --icon=/opt/devkitpro/libounce/default_icon.jpg --nacp=bin/godot-switch2.nacp",
+)
+env.Depends(nro, nacp)
