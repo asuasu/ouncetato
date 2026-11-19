@@ -49,3 +49,26 @@ diff --git a/ui/menus/pages/main_menu.gd b/ui/menus/pages/main_menu.gd
  
  		var newPos = newVersion.find("-")
  		if newPos >= 0:
+@@ -284,6 +284,16 @@
+ 		version_label.text = "version " + newVersion
++
++		if not has_node("ExitHint"):
++			var exit_hint: = Label.new()
++			exit_hint.name = "ExitHint"
++			exit_hint.text = "Press + to exit"
++			exit_hint.rect_position = Vector2(16, 16)
++			exit_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
++			exit_hint.add_font_override("font", preload("res://resources/fonts/actual/base/font_22.tres"))
++			add_child(exit_hint)
+ 
+ 		if Utils.on_gdk:
+ 			xbox_gamertag.text = OS_Seaven.get_gamertag()
+@@ -428,3 +448,9 @@
+ func _on_ItemSetButton_pressed():
+ 	emit_signal("item_sets_pressed")
++
++
++func _input(event: InputEvent) -> void :
++	if visible and Utils.is_on_console() and event.is_action_pressed("ui_pause"):
++		get_tree().set_input_as_handled()
++		get_tree().quit()
