@@ -35,8 +35,9 @@ A release built with `make release` contains the compiled engine, override confi
 
 You do not need Python, Docker, devkitPro, GDRE Tools, Godot sources, Git, or a compiler.
 
-1. Copy your original Steam Brotato 1.2.0.3 PCK into the release's `brotato/` directory with the filename `brotato.pck`.
-2. Copy the complete `brotato/` directory to `/switch/brotato/` on the SD card.
+1. Download and unzip the [latest release](https://github.com/asuasu/ouncetato/releases).
+2. Copy your original Steam Brotato 1.2.0.3 PCK file (Brotato.pck from the game directory in Steam) into the release's `brotato/` directory with the filename `brotato.pck`.
+3. Copy the complete `brotato/` directory to `/switch/brotato/` on the SD card.
 
 At startup, the engine verifies the original PCK and applies the resource deltas in RAM. Your PCK is never modified.
 
