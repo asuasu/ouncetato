@@ -1,6 +1,7 @@
 #include "switch_wrapper.h"
 
 #include "core/project_settings.h"
+#include "input_latency.h"
 #include "main/main.h"
 #include "os_switch.h"
 
@@ -15,6 +16,7 @@ int main(int argc, char *argv[]) {
 
 	Error err = Main::setup(argv[0], argc - 1, &argv[1]);
 	ProjectSettings *settings = ProjectSettings::get_singleton();
+	InputLatencySwitch::set_enabled(settings->has_setting("brotato/input_latency_logging") && settings->get_setting("brotato/input_latency_logging"));
 	if (settings->has_setting("brotato/file_logging") && settings->get_setting("brotato/file_logging")) {
 		String log_path = String(argv[0]).get_base_dir().plus_file(String(argv[0]).get_file().get_basename() + ".log");
 		FILE *log = freopen(log_path.utf8().ptr(), "w", stdout);

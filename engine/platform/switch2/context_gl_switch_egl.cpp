@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <GLES3/gl3.h>
 
 ContextGLSwitchEGL::ContextGLSwitchEGL(bool p_gles3) :
 		gles3_context(p_gles3) {
@@ -13,7 +14,7 @@ ContextGLSwitchEGL::~ContextGLSwitchEGL() {
 }
 
 Error ContextGLSwitchEGL::initialize() {
-	setenv("MESA_VK_WSI_PRESENT_MODE", "mailbox", 1);
+	setenv("MESA_VK_WSI_PRESENT_MODE", "fifo", 1);
 	display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 	if (display == EGL_NO_DISPLAY) {
 		fprintf(stderr, "eglGetDisplay failed: 0x%x\n", eglGetError());
@@ -125,6 +126,7 @@ int ContextGLSwitchEGL::get_window_height() {
 }
 
 void ContextGLSwitchEGL::swap_buffers() {
+	glFinish();
 	eglSwapBuffers(display, surface);
 }
 
