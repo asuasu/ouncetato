@@ -21,6 +21,10 @@ uint64_t InputLatencySwitch::swap_max = 0;
 uint64_t InputLatencySwitch::gpu_count = 0;
 uint64_t InputLatencySwitch::gpu_total = 0;
 uint64_t InputLatencySwitch::gpu_max = 0;
+uint64_t InputLatencySwitch::full_sync_count = 0;
+uint64_t InputLatencySwitch::limited_count = 0;
+uint64_t InputLatencySwitch::sync_work_total = 0;
+uint64_t InputLatencySwitch::sync_work_max = 0;
 
 void InputLatencySwitch::set_enabled(bool p_enabled) {
 	enabled = p_enabled;
@@ -41,6 +45,10 @@ void InputLatencySwitch::set_enabled(bool p_enabled) {
 	gpu_count = 0;
 	gpu_total = 0;
 	gpu_max = 0;
+	full_sync_count = 0;
+	limited_count = 0;
+	sync_work_total = 0;
+	sync_work_max = 0;
 }
 
 void InputLatencySwitch::button(int p_device, int p_index, bool p_pressed, uint64_t p_started) {
@@ -71,6 +79,19 @@ void InputLatencySwitch::axis(int p_device, int p_index, float p_value, uint64_t
 	event.started = p_started;
 	event.dispatched = OS::get_singleton()->get_ticks_usec();
 	pending.push_back(event);
+}
+
+void InputLatencySwitch::sync(bool p_full_sync, uint64_t p_work_usec) {
+	if (!enabled) {
+		return;
+	}
+	if (p_full_sync) {
+		full_sync_count++;
+	} else {
+		limited_count++;
+	}
+	sync_work_total += p_work_usec;
+	sync_work_max = MAX(sync_work_max, p_work_usec);
 }
 
 void InputLatencySwitch::present(uint64_t p_swap_started) {
@@ -156,6 +177,12 @@ void InputLatencySwitch::present(uint64_t p_swap_started) {
 			printf("INPUT_LATENCY_GPU frames=%llu pending=%d avg_ms=%.3f max_ms=%.3f\n",
 					(unsigned long long)gpu_count, fences.size(), gpu_total / 1000.0 / gpu_count, gpu_max / 1000.0);
 		}
+		uint64_t sync_count = full_sync_count + limited_count;
+		if (sync_count > 0) {
+			printf("INPUT_LATENCY_ADAPTIVE full_sync=%llu queued=%llu work_avg_ms=%.3f work_max_ms=%.3f\n",
+					(unsigned long long)full_sync_count, (unsigned long long)limited_count,
+					sync_work_total / 1000.0 / sync_count, sync_work_max / 1000.0);
+		}
 		window_start = now;
 		axis_count = 0;
 		axis_dispatch_total = 0;
@@ -171,5 +198,9 @@ void InputLatencySwitch::present(uint64_t p_swap_started) {
 		gpu_count = 0;
 		gpu_total = 0;
 		gpu_max = 0;
+		full_sync_count = 0;
+		limited_count = 0;
+		sync_work_total = 0;
+		sync_work_max = 0;
 	}
 }
