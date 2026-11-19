@@ -1,4 +1,7 @@
 #include "joypad_switch.h"
+#include "input_latency.h"
+
+#include "core/os/os.h"
 
 struct ButtonMapping {
 	u64 source;
@@ -68,10 +71,14 @@ static int style_for_pad(const PadState &pad) {
 static void send_buttons(InputDefault *input, int device, u64 pressed, u64 released, const ButtonMapping *mapping, size_t count) {
 	for (size_t i = 0; i < count; i++) {
 		if (pressed & mapping[i].source) {
+			uint64_t started = InputLatencySwitch::is_enabled() ? OS::get_singleton()->get_ticks_usec() : 0;
 			input->joy_button(device, mapping[i].target, true);
+			InputLatencySwitch::button(device, mapping[i].target, true, started);
 		}
 		if (released & mapping[i].source) {
+			uint64_t started = InputLatencySwitch::is_enabled() ? OS::get_singleton()->get_ticks_usec() : 0;
 			input->joy_button(device, mapping[i].target, false);
+			InputLatencySwitch::button(device, mapping[i].target, false, started);
 		}
 	}
 }
@@ -147,8 +154,12 @@ void JoypadSwitch::process() {
 			primary_x = primary.y / 32767.0f;
 			primary_y = primary.x / 32767.0f;
 		}
+		uint64_t primary_started = InputLatencySwitch::is_enabled() ? OS::get_singleton()->get_ticks_usec() : 0;
 		input->joy_axis(device, 0, primary_x);
+		InputLatencySwitch::axis(device, 0, primary_x, primary_started);
+		primary_started = InputLatencySwitch::is_enabled() ? OS::get_singleton()->get_ticks_usec() : 0;
 		input->joy_axis(device, 1, primary_y);
+		InputLatencySwitch::axis(device, 1, primary_y, primary_started);
 
 		const HidAnalogStickState right = padGetStickPos(&pads[index], 1);
 		float right_x = right.x / 32767.0f;

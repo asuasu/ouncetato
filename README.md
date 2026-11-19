@@ -127,6 +127,8 @@ The game creates these additional files on the SD card:
 
 File and performance logging are disabled by default. To enable them, set `file_logging=true` and/or `performance_logging=true` under `[brotato]` in `override.cfg`.
 
+For input latency diagnostics, enable both `file_logging=true` and `input_latency_logging=true`. `brotato.log` will contain per-button latency, aggregated stick-axis latency, frame-presentation intervals, swap duration, and GPU queue completion timing.
+
 ## Controls
 
 Regular controls in single-player mode.

@@ -3,6 +3,7 @@
 
 #include "drivers/gles2/rasterizer_gles2.h"
 #include "drivers/gles3/rasterizer_gles3.h"
+#include "input_latency.h"
 #include "drivers/unix/dir_access_unix.h"
 #include "drivers/unix/file_access_unix.h"
 #include "drivers/unix/thread_posix.h"
@@ -405,9 +406,11 @@ void OS_Switch::run() {
 }
 
 void OS_Switch::swap_buffers() {
+	uint64_t started = InputLatencySwitch::is_enabled() ? OS::get_singleton()->get_ticks_usec() : 0;
 	if (gl_context) {
 		gl_context->swap_buffers();
 	}
+	InputLatencySwitch::present(started);
 }
 
 OS_Switch *OS_Switch::get_singleton() {
