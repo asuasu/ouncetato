@@ -1,0 +1,14 @@
+diff --git a/singletons/platforms/platform.gd b/singletons/platforms/platform.gd
+--- a/singletons/platforms/platform.gd
++++ b/singletons/platforms/platform.gd
+@@ -4,7 +4,9 @@
+ 
+ 
+ func _init() -> void :
+-	if OS.has_feature("steam"):
++	if OS.get_name() == "Seaven Ounce":
++		_platform_impl = LocalPlatform.new()
++	elif OS.has_feature("steam"):
+ 		_platform_impl = SteamPlatform.new()
+ 	elif OS.has_feature("epic"):
+ 		_platform_impl = EpicPlatform.new()

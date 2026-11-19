@@ -1,0 +1,14 @@
+diff --git a/drivers/gles2/rasterizer_storage_gles2.cpp b/drivers/gles2/rasterizer_storage_gles2.cpp
+--- a/drivers/gles2/rasterizer_storage_gles2.cpp
++++ b/drivers/gles2/rasterizer_storage_gles2.cpp
+@@ -110,6 +110,9 @@
+ PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC glFramebufferTexture2DMultisampleEXT;
+ #define glRenderbufferStorageMultisample glRenderbufferStorageMultisampleEXT
+ #define glFramebufferTexture2DMultisample glFramebufferTexture2DMultisampleEXT
+ 
++#elif defined(__SWITCH2__)
++#include <GLES3/gl3.h>
++
+ #elif defined(UWP_ENABLED)
+ #include <GLES2/gl2ext.h>
+ #define glRenderbufferStorageMultisample glRenderbufferStorageMultisampleANGLE

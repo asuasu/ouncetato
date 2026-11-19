@@ -1,0 +1,13 @@
+{
+  "game_version": "1.2.0.3",
+  "steam_zip_sha256": "05a7c286a63a88bfe7d28aeabfbd1a9882503e1f2726535ab58062af826f95a5",
+  "pck_sha256": "ab83e762b1deb358265ecb841d738f58d5b1511757746540ad59c39630c66159",
+  "linux_x86_64_sha256": "4f0d36ba0d936564115499c62e768833346bf37c78494f772bccac2a519dadd1",
+  "godot_version": "3.7.dev.custom_build",
+  "godot_commit": "74e86be5492080f6a4e903a973f2f4f7e9471af2",
+  "runtime_godot_commit": "0a9011743f8b62e5f4505fd17ca61fc3621394ef",
+  "pck_format": 1,
+  "pck_files": 12075,
+  "gdscript_bytecode": 13,
+  "gdre_bytecode_profile": "3.5.0-stable"
+}

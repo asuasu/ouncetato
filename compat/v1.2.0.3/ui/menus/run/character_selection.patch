@@ -1,0 +1,61 @@
+diff --git a/ui/menus/run/character_selection.gd b/ui/menus/run/character_selection.gd
+--- a/ui/menus/run/character_selection.gd
++++ b/ui/menus/run/character_selection.gd
+@@ -133,18 +133,20 @@
+ 
+ func _init_play_mode_ui() -> void :
+ 	if Utils.on_nintendo_ounce or OS_Seaven.is_in_editor_mode():
+-		_coop_button.visible = OS_Seaven.is_in_editor_mode()
++		_coop_button.visible = true
++		_coop_button.focus_mode = Control.FOCUS_ALL
+ 
+ 		if _mode_selection_button == null:
+ 			_mode_selection_button = OptionButton.new()
+ 			_run_options_panel_content.add_child(_mode_selection_button)
+ 			_mode_selection_button.connect("item_selected", self, "_on_ModeSelectionButton_item_selected")
+ 
+-		_mode_selection_button.visible = true
++		_mode_selection_button.visible = false
+ 		_mode_selection_button.clear()
+ 		_mode_selection_button.add_item(tr("SOLO"), RunData.PlayMode.SOLO)
+ 		_mode_selection_button.add_item(tr("COOP"), RunData.PlayMode.COOP)
+-		_mode_selection_button.add_item(tr("GAMESHARE_LOCAL"), RunData.PlayMode.STREAMPLAY_LOCAL)
++		if OS_Seaven.is_in_editor_mode():
++			_mode_selection_button.add_item(tr("GAMESHARE_LOCAL"), RunData.PlayMode.STREAMPLAY_LOCAL)
+ 	else:
+ 		_coop_button.visible = true
+ 
+@@ -395,10 +397,10 @@
+ 					print("[CharacterSelection] Rollback")
+ 					_play_mode_init(RunData.PlayMode.SOLO, false)
+ 		else:
+-			if OS.get_max_controller_count() != 1:
++			if OS_Seaven.get_max_controller_count() != 1:
+ 				print("[CharacterSelection] max controller 1")
+-				OS.set_max_controller_count(1)
+-				OS.show_controller_applet(1, 1)
++				OS_Seaven.set_max_controller_count(1)
++				OS_Seaven.show_controller_applet(1, 1)
+ 				set_process(false)
+ 
+ 	if RunData.is_coop_run:
+@@ -640,9 +642,7 @@
+ 				
+ 				
+ 				if __need_controller_applet_timer == - 1:
+-					if OS.get_controller_count() <= 1:
+-						_play_mode_init(RunData.PlayMode.SOLO, false)
+-						return
++					return
+ 
+ 				var num_connected_players = len(CoopService.connected_players)
+ 
+@@ -653,7 +653,7 @@
+ 						if __need_controller_applet_timer < 0:
+ 							__need_controller_applet_timer = - 1
+ 							print("[CharacterSelection] show controller applet in process")
+-							OS.show_controller_applet(2, CoopService.get_max_players())
++							OS_Seaven.show_controller_applet(2, CoopService.get_max_players())
+ 
+ 						return
+ 

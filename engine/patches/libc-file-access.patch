@@ -1,0 +1,23 @@
+diff --git a/drivers/unix/file_access_unix.cpp b/drivers/unix/file_access_unix.cpp
+--- a/drivers/unix/file_access_unix.cpp
++++ b/drivers/unix/file_access_unix.cpp
+@@ -38,9 +38,9 @@
+ #include <sys/stat.h>
+ #include <sys/types.h>
+ 
+ #include <errno.h>
+ 
+-#if defined(UNIX_ENABLED)
++#if defined(UNIX_ENABLED) || defined(LIBC_FILEIO_ENABLED)
+ #include <unistd.h>
+ #endif
+ 
+@@ -279,7 +279,7 @@ bool FileAccessUnix::file_exists(const String &p_path) {
+ 		return false;
+ 	}
+ 
+-#ifdef UNIX_ENABLED
++#if defined(UNIX_ENABLED) || defined(LIBC_FILEIO_ENABLED)
+ 	// See if we have access to the file
+ 	if (access(filename.utf8().get_data(), F_OK)) {
+ 		return false;

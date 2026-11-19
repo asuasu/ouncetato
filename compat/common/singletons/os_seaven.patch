@@ -1,0 +1,77 @@
+diff --git a/singletons/os_seaven.gd b/singletons/os_seaven.gd
+--- a/singletons/os_seaven.gd
++++ b/singletons/os_seaven.gd
+@@ -1,7 +1,72 @@
+ extends Node
+ 
++var _max_controller_count = 1
++var _joycon_support = false
++var _fast_cpu_mode = false
++var _vsync_interval = 1
++
+ func get_controller_style(style_id: int):
+-	return 0
++	return OS.get_controller_style(style_id)
+ 
+ func is_in_editor_mode():
+ 	return false
++
++func has_controller_style_maybe_changed():
++	return false
++
++func set_joycon_support(enabled):
++	_joycon_support = enabled
++
++func get_max_controller_count():
++	return OS.get_max_controller_count()
++
++func set_max_controller_count(count):
++	_max_controller_count = clamp(count, 1, 4)
++	OS.set_max_controller_count(_max_controller_count)
++
++func show_controller_applet(minimum, maximum):
++	return OS.show_controller_applet(minimum, maximum)
++
++func set_fast_cpu_mode(enabled):
++	_fast_cpu_mode = enabled
++	OS.set_fast_cpu_mode(enabled)
++
++func set_vsync_interval(interval):
++	_vsync_interval = max(interval, 1)
++	OS.set_vsync_interval(_vsync_interval)
++
++func unlock_achievement(achievement_id):
++	print("Achievement unlocked: ", achievement_id)
++
++func start_activity(activity_id):
++	return 0
++
++func terminate_activity(activity_id):
++	return 0
++
++func end_activity(activity_id, completed):
++	return 0
++
++func get_pending_activity():
++	return ""
++
++func has_dlc_updates():
++	return false
++
++func show_product_store(product_id):
++	return 0
++
++func start_streamplay(internet, config):
++	return 0
++
++func stop_streamplay():
++	return 0
++
++func check_streamplay_state(update = false):
++	return false
++
++func has_keyboard():
++	return false
++
++func get_gamertag():
++	return ""

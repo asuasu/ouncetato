@@ -1,0 +1,18 @@
+diff --git a/ui/menus/pages/menu_options.gd b/ui/menus/pages/menu_options.gd
+--- a/ui/menus/pages/menu_options.gd
++++ b/ui/menus/pages/menu_options.gd
+@@ -102,7 +102,13 @@
+ 
+ func _input(event):
+ 	if self.visible and event.is_action_released("ui_cancel"):
+-		_on_BackButton_pressed()
++		var tab_buttons = [$Buttons/HBoxContainer2/Audio_but, $Buttons/HBoxContainer2/Visual_but, $Buttons/HBoxContainer2/Gameplay_but, $Buttons/HBoxContainer2/Accessibility_but]
++		var focused = get_focus_owner()
++		if focused in tab_buttons or focused == $"%BackButton":
++			_on_BackButton_pressed()
++		else:
++			var current_tab = $Buttons/HBoxContainer3/TabContainer.current_tab
++			tab_buttons[current_tab].grab_focus()
+ 		get_tree().set_input_as_handled()
+ 
+ 

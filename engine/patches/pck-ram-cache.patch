@@ -1,0 +1,192 @@
+diff --git a/core/io/file_access_pack.cpp b/core/io/file_access_pack.cpp
+index 809845d..e155bac 100644
+--- a/core/io/file_access_pack.cpp
++++ b/core/io/file_access_pack.cpp
+@@ -34,6 +34,134 @@
+ #include "core/version.h"
+ 
+ #include <stdio.h>
++#include <string.h>
++
++#ifdef __SWITCH2__
++#include "core/crypto/crypto_core.h"
++#include "core/io/file_access_memory.h"
++
++static Vector<uint8_t> switch2_pack_cache;
++static String switch2_pack_cache_path;
++static HashMap<String, Vector<uint8_t>> switch2_patched_resources;
++
++static FileAccess *open_pack_source(const String &p_path) {
++	if (p_path == switch2_pack_cache_path && !switch2_pack_cache.empty()) {
++		FileAccessMemory *memory = memnew(FileAccessMemory);
++		memory->open_custom(switch2_pack_cache.ptr(), switch2_pack_cache.size());
++		return memory;
++	}
++	return FileAccess::open(p_path, FileAccess::READ);
++}
++
++static FileAccess *cache_switch2_pack(const String &p_path, FileAccess *p_file) {
++	const uint64_t size = p_file->get_len();
++	if (size == 0 || size > 512ULL * 1024 * 1024) {
++		return p_file;
++	}
++	const uint64_t started = OS::get_singleton()->get_ticks_usec();
++	p_file->seek(0);
++	switch2_pack_cache.resize(size);
++	const uint64_t read = p_file->get_buffer(switch2_pack_cache.ptrw(), size);
++	if (read != size) {
++		switch2_pack_cache.clear();
++		switch2_pack_cache_path = "";
++		p_file->seek(0);
++		return p_file;
++	}
++	switch2_pack_cache_path = p_path;
++	const uint64_t elapsed = (OS::get_singleton()->get_ticks_usec() - started) / 1000;
++	printf("PCK copied to RAM: %llu bytes in %llu ms\n", (unsigned long long)size, (unsigned long long)elapsed);
++	memdelete(p_file);
++	return open_pack_source(p_path);
++}
++
++static bool switch2_md5_matches(const Vector<uint8_t> &p_data, const uint8_t *p_expected) {
++	uint8_t actual[16];
++	CryptoCore::md5(p_data.ptr(), p_data.size(), actual);
++	return memcmp(actual, p_expected, 16) == 0;
++}
++
++static bool switch2_apply_resource_deltas(const String &p_pack_path) {
++	String delta_path = p_pack_path.get_base_dir().plus_file("brotato.bpd");
++	if (!FileAccess::exists(delta_path)) {
++		return true;
++	}
++	ERR_FAIL_COND_V_MSG(switch2_pack_cache_path != p_pack_path || switch2_pack_cache.empty(), false, "Resource deltas require the original PCK RAM cache.");
++
++	FileAccess *f = FileAccess::open(delta_path, FileAccess::READ);
++	ERR_FAIL_COND_V_MSG(!f, false, "Cannot open resource delta bundle: " + delta_path);
++	uint32_t magic = f->get_32();
++	uint32_t version = f->get_32();
++	ERR_FAIL_COND_V_MSG(magic != 0x4c445242 || version != 1, false, "Unsupported resource delta bundle: " + delta_path);
++
++	uint8_t expected_pack_hash[32];
++	f->get_buffer(expected_pack_hash, 32);
++	uint8_t actual_pack_hash[32];
++	CryptoCore::sha256(switch2_pack_cache.ptr(), switch2_pack_cache.size(), actual_pack_hash);
++	ERR_FAIL_COND_V_MSG(memcmp(actual_pack_hash, expected_pack_hash, 32) != 0, false, "The original PCK does not match this resource delta bundle.");
++
++	uint32_t record_count = f->get_32();
++	switch2_patched_resources.clear();
++	for (uint32_t i = 0; i < record_count; i++) {
++		uint32_t path_length = f->get_32();
++		CharString path_string;
++		path_string.resize(path_length + 1);
++		ERR_FAIL_COND_V(f->get_buffer((uint8_t *)path_string.ptr(), path_length) != path_length, false);
++		path_string[path_length] = 0;
++		String resource_path;
++		resource_path.parse_utf8(path_string.ptr());
++
++		uint64_t source_size = f->get_64();
++		uint64_t result_size = f->get_64();
++		uint8_t source_md5[16];
++		uint8_t result_md5[16];
++		f->get_buffer(source_md5, 16);
++		f->get_buffer(result_md5, 16);
++		uint32_t operation_count = f->get_32();
++
++		FileAccess *source_file = PackedData::get_singleton()->try_open_path(resource_path);
++		ERR_FAIL_COND_V_MSG(!source_file, false, "Missing resource for delta patch: " + resource_path);
++		Vector<uint8_t> source;
++		source.resize(source_size);
++		ERR_FAIL_COND_V(source_file->get_len() != source_size, false);
++		ERR_FAIL_COND_V(source_file->get_buffer(source.ptrw(), source_size) != source_size, false);
++		memdelete(source_file);
++		ERR_FAIL_COND_V_MSG(!switch2_md5_matches(source, source_md5), false, "Source resource hash mismatch: " + resource_path);
++
++		Vector<uint8_t> result;
++		result.resize(result_size);
++		uint64_t result_offset = 0;
++		for (uint32_t operation = 0; operation < operation_count; operation++) {
++			uint32_t kind = f->get_32();
++			uint64_t source_offset = f->get_64();
++			uint64_t length = f->get_64();
++			ERR_FAIL_COND_V(result_offset + length > result_size, false);
++			if (kind == 0) {
++				ERR_FAIL_COND_V(source_offset + length > source_size, false);
++				memcpy(result.ptrw() + result_offset, source.ptr() + source_offset, length);
++			} else if (kind == 1) {
++				ERR_FAIL_COND_V(f->get_buffer(result.ptrw() + result_offset, length) != length, false);
++			} else {
++				ERR_FAIL_V_MSG(false, "Unknown resource delta operation.");
++			}
++			result_offset += length;
++		}
++		ERR_FAIL_COND_V(result_offset != result_size, false);
++		ERR_FAIL_COND_V_MSG(!switch2_md5_matches(result, result_md5), false, "Patched resource hash mismatch: " + resource_path);
++		switch2_patched_resources[resource_path] = result;
++	}
++	f->close();
++	memdelete(f);
++	printf("Applied %u in-memory resource deltas; original PCK unchanged\n", record_count);
++	return true;
++}
++#endif
++
++#ifndef __SWITCH2__
++static FileAccess *open_pack_source(const String &p_path) {
++	return FileAccess::open(p_path, FileAccess::READ);
++}
++#endif
+ 
+ Error PackedData::add_pack(const String &p_path, bool p_replace_files, uint64_t p_offset) {
+ 	for (int i = 0; i < sources.size(); i++) {
+@@ -126,7 +254,15 @@ PackedData::~PackedData() {
+ //////////////////////////////////////////////////////////////////
+ 
+ bool PackedSourcePCK::try_open_pack(const String &p_path, bool p_replace_files, uint64_t p_offset) {
++#ifdef __SWITCH2__
++	FileAccess *f = open_pack_source(p_path);
++	if (f && p_offset == 0 && p_path.ends_with(".pck") && switch2_pack_cache_path != p_path) {
++		f = cache_switch2_pack(p_path, f);
++	}
++#else
+ 	FileAccess *f = FileAccess::open(p_path, FileAccess::READ);
++#endif
++
+ 	if (!f) {
+ 		return false;
+ 	}
+@@ -241,12 +377,27 @@ bool PackedSourcePCK::try_open_pack(const String &p_path, bool p_replace_files,
+ 		PackedData::get_singleton()->add_path(p_path, path, ofs + p_offset, size, md5, this, p_replace_files);
+ 	};
+ 
++#ifdef __SWITCH2__
++	if (!switch2_apply_resource_deltas(p_path)) {
++		f->close();
++		memdelete(f);
++		return false;
++	}
++#endif
+ 	f->close();
+ 	memdelete(f);
+ 	return true;
+ };
+ 
+ FileAccess *PackedSourcePCK::get_file(const String &p_path, PackedData::PackedFile *p_file) {
++#ifdef __SWITCH2__
++	Vector<uint8_t> *patched = switch2_patched_resources.getptr(p_path);
++	if (patched) {
++		FileAccessMemory *memory = memnew(FileAccessMemory);
++		memory->open_custom(patched->ptr(), patched->size());
++		return memory;
++	}
++#endif
+ 	return memnew(FileAccessPack(p_path, *p_file));
+ };
+ 
+@@ -355,7 +506,7 @@ bool FileAccessPack::file_exists(const String &p_name) {
+ 
+ FileAccessPack::FileAccessPack(const String &p_path, const PackedData::PackedFile &p_file) :
+ 		pf(p_file),
+-		f(FileAccess::open(pf.pack, FileAccess::READ)) {
++		f(open_pack_source(pf.pack)) {
+ 	ERR_FAIL_COND_MSG(!f, "Can't open pack-referenced file '" + String(pf.pack) + "'.");
+ 
+ 	f->seek(pf.offset);

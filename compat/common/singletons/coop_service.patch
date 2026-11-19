@@ -1,0 +1,46 @@
+diff --git a/singletons/coop_service.gd b/singletons/coop_service.gd
+--- a/singletons/coop_service.gd
++++ b/singletons/coop_service.gd
+@@ -92,14 +92,10 @@
+ 		if debug_device >= 0:
+ 			device_to_add = debug_device
+ 
+-	if Utils.on_nintendo_nx_or_ounce:
+-		
+-		pass
+-	else:
+-		if event.is_action_pressed("ui_accept_%s" % device_to_add) and not _hold_timers.has(device_to_add):
+-			
+-			_hold_timers[device_to_add] = 0.0
+-			set_process(true)
++	if event.is_action_pressed("ui_accept_%s" % device_to_add) and not _hold_timers.has(device_to_add):
++		
++		_hold_timers[device_to_add] = 0.0
++		set_process(true)
+ 
+ 
+ 
+@@ -257,9 +253,9 @@
+ 				return gamepad_playstation_ui_select_icon
+ 			PlayerType.GAMEPAD_SWITCH:
+ 				if input_style == 4 or input_style == 5:
+-					return gamepad_switch_pos_up_icon
++					return gamepad_switch_pos_left_icon
+ 				else:
+-					return gamepad_switch_ui_select_icon
++					return gamepad_switch_ui_info_icon
+ 	elif action == "ui_info":
+ 		match input_type:
+ 			PlayerType.KEYBOARD_AND_MOUSE:
+@@ -270,9 +266,9 @@
+ 				return gamepad_playstation_ui_info_icon
+ 			PlayerType.GAMEPAD_SWITCH:
+ 				if input_style == 4 or input_style == 5:
+-					return gamepad_switch_pos_left_icon
++					return gamepad_switch_pos_up_icon
+ 				else:
+-					return gamepad_switch_ui_info_icon
++					return gamepad_switch_ui_select_icon
+ 	elif action == "ltrigger":
+ 		if input_type != PlayerType.KEYBOARD_AND_MOUSE:
+ 			match input_type:

@@ -1,0 +1,8 @@
+diff --git a/singletons/debug_service.gd b/singletons/debug_service.gd
+--- a/singletons/debug_service.gd
++++ b/singletons/debug_service.gd
+@@ -106,6 +106,7 @@ func _ready() -> void :
++	log_perf_overlay = ProjectSettings.get_setting("brotato/performance_logging", false)
+ 	pause_mode = PAUSE_MODE_PROCESS
+ 
+ 	if perf_scenario != PerfScenario.OFF:
