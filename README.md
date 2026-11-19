@@ -130,6 +130,7 @@ File and performance logging are disabled by default. To enable them, set `file_
 ## Controls
 
 Regular controls in single-player mode.
+**Plus** exits the game from the main menu.
 Single Joy-Cons in horizontal mode are supported. Join co-op by holding **A** on each Joy-Con.
 
 - Left Joy-Con is player 1; right Joy-Con is player 2.
