@@ -90,6 +90,14 @@ Error ContextGLSwitchEGL::initialize() {
 
 void ContextGLSwitchEGL::cleanup() {
 	if (display != EGL_NO_DISPLAY) {
+		for (int i = 0; i < 2; i++) {
+			if (frame_fences[i]) {
+				glDeleteSync(frame_fences[i]);
+				frame_fences[i] = nullptr;
+			}
+		}
+		frame_fence_count = 0;
+		frame_fence_next = 0;
 		eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 		if (context != EGL_NO_CONTEXT) {
 			eglDestroyContext(display, context);
@@ -125,9 +133,37 @@ int ContextGLSwitchEGL::get_window_height() {
 	return window_height;
 }
 
-void ContextGLSwitchEGL::swap_buffers() {
-	glFinish();
+void ContextGLSwitchEGL::swap_buffers(bool p_full_sync) {
+	if (p_full_sync) {
+		glFinish();
+		for (int i = 0; i < 2; i++) {
+			if (frame_fences[i]) {
+				glDeleteSync(frame_fences[i]);
+				frame_fences[i] = nullptr;
+			}
+		}
+		frame_fence_count = 0;
+		frame_fence_next = 0;
+		eglSwapBuffers(display, surface);
+		return;
+	}
 	eglSwapBuffers(display, surface);
+	if (frame_fence_count == 2) {
+		GLsync oldest = frame_fences[frame_fence_next];
+		GLenum result = glClientWaitSync(oldest, GL_SYNC_FLUSH_COMMANDS_BIT, 1000000000);
+		if (result == GL_WAIT_FAILED) {
+			fprintf(stderr, "Frame fence wait failed\n");
+		}
+		glDeleteSync(oldest);
+		frame_fences[frame_fence_next] = nullptr;
+		frame_fence_count--;
+	}
+	GLsync current = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+	if (current) {
+		frame_fences[frame_fence_next] = current;
+		frame_fence_next = (frame_fence_next + 1) % 2;
+		frame_fence_count++;
+	}
 }
 
 void ContextGLSwitchEGL::set_use_vsync(bool p_use) {

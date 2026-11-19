@@ -396,6 +396,7 @@ void OS_Switch::run() {
 	}
 	main_loop->init();
 	while (appletMainLoop()) {
+		frame_started = OS::get_singleton()->get_ticks_usec();
 		joypad->process();
 		input->flush_buffered_events();
 		if (Main::iteration()) {
@@ -406,9 +407,12 @@ void OS_Switch::run() {
 }
 
 void OS_Switch::swap_buffers() {
-	uint64_t started = InputLatencySwitch::is_enabled() ? OS::get_singleton()->get_ticks_usec() : 0;
+	uint64_t started = OS::get_singleton()->get_ticks_usec();
+	uint64_t work = started - frame_started;
+	bool full_sync = work <= 10000;
+	InputLatencySwitch::sync(full_sync, work);
 	if (gl_context) {
-		gl_context->swap_buffers();
+		gl_context->swap_buffers(full_sync);
 	}
 	InputLatencySwitch::present(started);
 }

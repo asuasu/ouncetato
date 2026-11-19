@@ -39,12 +39,17 @@ class InputLatencySwitch {
 	static uint64_t gpu_count;
 	static uint64_t gpu_total;
 	static uint64_t gpu_max;
+	static uint64_t full_sync_count;
+	static uint64_t limited_count;
+	static uint64_t sync_work_total;
+	static uint64_t sync_work_max;
 
 public:
 	static bool is_enabled() { return enabled; }
 	static void set_enabled(bool p_enabled);
 	static void button(int p_device, int p_index, bool p_pressed, uint64_t p_started);
 	static void axis(int p_device, int p_index, float p_value, uint64_t p_started);
+	static void sync(bool p_full_sync, uint64_t p_work_usec);
 	static void present(uint64_t p_swap_started);
 };
 

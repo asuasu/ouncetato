@@ -17,6 +17,7 @@ class OS_Switch : public OS {
 	InputDefault *input = nullptr;
 	ContextGLSwitchEGL *gl_context = nullptr;
 	JoypadSwitch *joypad = nullptr;
+	uint64_t frame_started = 0;
 	AudioDriverAudren driver_audren;
 	String switch_execpath;
 	int min_controller_count = 1;
