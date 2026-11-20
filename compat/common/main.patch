@@ -7,9 +7,30 @@ diff --git a/main.gd b/main.gd
  func _ready() -> void :
 -	if DebugService.display_fps:
 -		_fps_label.show()
++	Engine.iterations_per_second = 60
++	Engine.target_fps = 60
 +	_fps_label.show()
 +	_fps_label.rect_position = Vector2(8, 8)
 +	_fps_label.add_font_override("font", preload("res://resources/fonts/actual/base/font_22.tres"))
  
  	if consumable_scene != null:
  		_consumable_pool_id = Keys.generate_hash(consumable_scene.resource_path)
+@@ -465,6 +466,17 @@ func _physics_process(_delta: float) -> void :
+ 	if _cleaning_up:
+ 		_gold_bag.global_position = get_gold_bag_pos()
+ 
++	var target_physics_rate: = 60
++	if RunData.current_living_enemies >= 96:
++		target_physics_rate = 30
++	elif RunData.current_living_enemies >= 64:
++		target_physics_rate = 40
++	elif RunData.current_living_enemies >= 32:
++		target_physics_rate = 50
++	if target_physics_rate != Engine.iterations_per_second:
++		Engine.iterations_per_second = target_physics_rate
++		Engine.target_fps = target_physics_rate
++		print("Physics rate changed to %d" % target_physics_rate)
++
+ 	for player_index in RunData.get_player_count():
+ 		var life_bar_effects = _players[player_index].life_bar_effects()
+ 		var player_ui: PlayerUIElements = _players_ui[player_index]
