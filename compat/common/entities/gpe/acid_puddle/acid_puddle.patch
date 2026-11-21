@@ -1,0 +1,21 @@
+diff --git a/entities/gpe/acid_puddle/acid_puddle.gd b/entities/gpe/acid_puddle/acid_puddle.gd
+--- a/entities/gpe/acid_puddle/acid_puddle.gd
++++ b/entities/gpe/acid_puddle/acid_puddle.gd
+@@ -89,9 +89,6 @@ func despawn():
+ 	_is_dying = true
+ 	_lifetime_timer.stop()
+ 
+-	
+-	if collision:
+-		collision.set_deferred("disabled", true)
+ 
+ 	tween.stop_all()
+ 	tween.interpolate_property(self, "scale", 
+@@ -137,8 +137,6 @@ func _return_to_pool() -> void :
+ 	modulate.a = 1.0
+ 	scale = _base_scale
+-	if collision:
+-		collision.set_deferred("disabled", false)
+ 
+ 	if get_parent() != null and has_meta("pool_id"):
+ 		Utils.get_scene_node().add_node_to_pool(self, get_meta("pool_id"))

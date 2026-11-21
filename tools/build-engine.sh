@@ -14,7 +14,8 @@ for patch_name in \
     coop-controller-color.patch \
     gles2-switch2.patch \
     libc-file-access.patch \
-    pck-ram-cache.patch
+    pck-ram-cache.patch \
+    diagnostics.patch
 do
     patch="$ROOT/engine/patches/$patch_name"
     patch_hash=$(sha256sum "$patch")
