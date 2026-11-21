@@ -4,6 +4,7 @@
 #include "drivers/gles2/rasterizer_gles2.h"
 #include "drivers/gles3/rasterizer_gles3.h"
 #include "input_latency.h"
+#include "core/sort_array.h"
 #include "drivers/unix/dir_access_unix.h"
 #include "drivers/unix/file_access_unix.h"
 #include "drivers/unix/thread_posix.h"
@@ -314,9 +315,138 @@ uint64_t OS_Switch::get_ticks_usec() const {
 	return armGetSystemTick() * 1000000ULL / frequency;
 }
 
+void OS_Switch::set_pacing_rate(int p_rate) {
+	if (pacing_rate == p_rate) {
+		return;
+	}
+	pacing_rate = p_rate;
+	Engine::get_singleton()->set_iterations_per_second(p_rate);
+	Engine::get_singleton()->set_target_fps(p_rate);
+	uint64_t now = get_ticks_usec();
+	last_rate_change = now;
+	overload_started = 0;
+	severe_overload_started = 0;
+	stable_started = 0;
+	ignore_pacing_until = now + 500000;
+	pacing_window_started = now;
+	frame_work_samples.clear();
+	printf("Adaptive physics/render rate: %d Hz\n", pacing_rate);
+}
+
+void OS_Switch::update_frame_pacing(uint64_t p_now, uint64_t p_work_usec) {
+	int engine_rate = Engine::get_singleton()->get_iterations_per_second();
+	if (engine_rate != pacing_rate) {
+		pacing_rate = engine_rate;
+		overload_started = 0;
+		severe_overload_started = 0;
+		stable_started = 0;
+		pacing_window_started = p_now;
+		frame_work_samples.clear();
+	}
+	if (p_work_usec > 100000) {
+		ignore_pacing_until = p_now + 2000000;
+		pacing_window_started = p_now;
+		frame_work_samples.clear();
+		overload_started = 0;
+		severe_overload_started = 0;
+		stable_started = 0;
+		return;
+	}
+	if (p_now < ignore_pacing_until) {
+		return;
+	}
+	if (pacing_window_started == 0) {
+		pacing_window_started = p_now;
+	}
+	frame_work_samples.push_back(p_work_usec);
+	if (p_now - pacing_window_started < 1000000 || frame_work_samples.empty()) {
+		return;
+	}
+
+	Vector<uint32_t> sorted = frame_work_samples;
+	SortArray<uint32_t> sort;
+	sort.sort(sorted.ptrw(), sorted.size());
+	uint64_t median = sorted[sorted.size() / 2];
+	uint64_t p90 = sorted[int((sorted.size() - 1) * 0.9)];
+	uint64_t budget = 1000000 / pacing_rate;
+	int lower_rate = 0;
+	int higher_rate = 0;
+	switch (pacing_rate) {
+		case 60: lower_rate = 50; break;
+		case 50: lower_rate = 40; higher_rate = 60; break;
+		case 40: lower_rate = 30; higher_rate = 50; break;
+		case 30: higher_rate = 40; break;
+	}
+
+	bool overloaded = (pacing_rate == 60 && median > 17000) ||
+			(pacing_rate == 50 && median > 21000) ||
+			(pacing_rate == 40 && median > 26000);
+	if (overloaded) {
+		if (overload_started == 0) {
+			overload_started = p_now;
+		}
+	} else {
+		overload_started = 0;
+	}
+	if (p90 > 30000 && lower_rate != 0) {
+		if (severe_overload_started == 0) {
+			severe_overload_started = p_now;
+		}
+	} else {
+		severe_overload_started = 0;
+	}
+	bool stable = median * 4 < budget * 3 && p90 * 10 < budget * 9;
+	if (stable) {
+		if (stable_started == 0) {
+			stable_started = p_now;
+		}
+	} else {
+		stable_started = 0;
+	}
+
+	if (lower_rate != 0 && ((overload_started != 0 && p_now - overload_started >= 1000000) ||
+			(severe_overload_started != 0 && p_now - severe_overload_started >= 500000)) &&
+			p_now - last_rate_change >= 3000000) {
+		set_pacing_rate(lower_rate);
+	} else if (higher_rate != 0 && stable_started != 0 && p_now - stable_started >= 3000000 && p_now - last_rate_change >= 3000000) {
+		set_pacing_rate(higher_rate);
+	}
+	frame_work_samples.clear();
+	pacing_window_started = p_now;
+}
+
+void OS_Switch::update_cpu_boost(uint64_t p_now) {
+	float fps = Engine::get_singleton()->get_frames_per_second();
+	if (fps > 0 && fps < 40) {
+		if (boost_low_fps_started == 0) {
+			boost_low_fps_started = p_now;
+		}
+		boost_high_fps_started = 0;
+		if (!boost_enabled && p_now - boost_low_fps_started >= 1000000 && p_now - boost_changed >= 3000000) {
+			set_fast_cpu_mode(true);
+		}
+	} else if (fps > 50) {
+		if (boost_high_fps_started == 0) {
+			boost_high_fps_started = p_now;
+		}
+		boost_low_fps_started = 0;
+		if (boost_enabled && p_now - boost_high_fps_started >= 5000000 && p_now - boost_changed >= 3000000) {
+			set_fast_cpu_mode(false);
+		}
+	} else {
+		boost_low_fps_started = 0;
+		boost_high_fps_started = 0;
+	}
+}
+
 void OS_Switch::set_fast_cpu_mode(bool p_enabled) {
+	boost_enabled = p_enabled;
+	boost_changed = get_ticks_usec();
+	boost_low_fps_started = 0;
+	boost_high_fps_started = 0;
 	static uint64_t boost_started = 0;
 	const Result result = appletSetCpuBoostMode(p_enabled ? ApmCpuBoostMode_FastLoad : ApmCpuBoostMode_Normal);
+	printf("CPU boost native enabled=%d result=0x%x\n", p_enabled, result);
 	if (R_FAILED(result)) {
 		fprintf(stderr, "appletSetCpuBoostMode failed: 0x%x\n", result);
 	}
@@ -409,6 +539,8 @@ void OS_Switch::run() {
 void OS_Switch::swap_buffers() {
 	uint64_t started = OS::get_singleton()->get_ticks_usec();
 	uint64_t work = started - frame_started;
+	update_cpu_boost(started);
+	update_frame_pacing(started, work);
 	bool full_sync = work <= 10000;
 	InputLatencySwitch::sync(full_sync, work);
 	if (gl_context) {

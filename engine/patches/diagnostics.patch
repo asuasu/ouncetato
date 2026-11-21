@@ -1,0 +1,24 @@
+diff --git a/servers/physics_2d/physics_2d_server_sw.cpp b/servers/physics_2d/physics_2d_server_sw.cpp
+index 6ae0409..3b8186e 100644
+--- a/servers/physics_2d/physics_2d_server_sw.cpp
++++ b/servers/physics_2d/physics_2d_server_sw.cpp
+@@ -36,6 +36,7 @@
+ #include "core/os/os.h"
+ #include "core/project_settings.h"
+ #include "core/script_language.h"
++#include "scene/main/node.h"
+ 
+ #define FLUSH_QUERY_CHECK(m_object) \
+ 	ERR_FAIL_COND_MSG(m_object->get_space() && flushing_queries, "Can't change this state while flushing queries. Use call_deferred() or set_deferred() to change monitoring state instead.");
+@@ -359,6 +360,11 @@ void Physics2DServerSW::area_set_shape_disabled(RID p_area, int p_shape, bool p_
+ 	Area2DSW *area = area_owner.get(p_area);
+ 	ERR_FAIL_COND(!area);
+ 	ERR_FAIL_INDEX(p_shape, area->get_shape_count());
++	if (area->get_space() && flushing_queries) {
++		Object *object = ObjectDB::get_instance(area->get_instance_id());
++		Node *node = Object::cast_to<Node>(object);
++		printf("Collision disabled during physics query: %s\n", node ? String(node->get_path()).utf8().ptr() : "unknown");
++	}
+ 	FLUSH_QUERY_CHECK(area);
+ 
+ 	area->set_shape_disabled(p_shape, p_disabled);

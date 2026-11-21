@@ -18,6 +18,22 @@ class OS_Switch : public OS {
 	ContextGLSwitchEGL *gl_context = nullptr;
 	JoypadSwitch *joypad = nullptr;
 	uint64_t frame_started = 0;
+	uint64_t pacing_window_started = 0;
+	uint64_t overload_started = 0;
+	uint64_t severe_overload_started = 0;
+	uint64_t stable_started = 0;
+	uint64_t last_rate_change = 0;
+	uint64_t ignore_pacing_until = 0;
+	uint64_t boost_low_fps_started = 0;
+	uint64_t boost_high_fps_started = 0;
+	uint64_t boost_changed = 0;
+	int pacing_rate = 60;
+	bool boost_enabled = false;
+	Vector<uint32_t> frame_work_samples;
+
+	void update_frame_pacing(uint64_t p_now, uint64_t p_work_usec);
+	void set_pacing_rate(int p_rate);
+	void update_cpu_boost(uint64_t p_now);
 	AudioDriverAudren driver_audren;
 	String switch_execpath;
 	int min_controller_count = 1;
