@@ -1,3 +1,5 @@
+![Brotato Switch 2 Homebrew Port](header.jpg)
+
 # Brotato Switch 2 Homebrew Port
 
 Native Switch 2 homebrew port of **Brotato 1.2.0.3 (Steam)**, built with the open-source **Godot Engine** and **ounce-devkit**.
